@@ -75,7 +75,7 @@ pipeline {
             }
         }
 
-        stage('Run JMeter') {
+        stage('Run JMeter Test') {
             steps {
                 bat '''
                     echo ===== START JMETER TEST =====
@@ -100,37 +100,30 @@ pipeline {
                 '''
             }
         }
-	
-	stage('Generate HTML Report') {
-    	    steps {
+
+        stage('Generate HTML Report') {
+            steps {
                 bat '''
                     echo ===== GENERATING JMETER HTML REPORT =====
 
-            	if exist "%WORKSPACE%\\HTMLReport" (
-                rmdir /S /Q "%WORKSPACE%\\HTMLReport"
-           	)
+                    if exist "%WORKSPACE%\\HTMLReport" (
+                        rmdir /S /Q "%WORKSPACE%\\HTMLReport"
+                    )
 
-            	call jmeter -g "%WORKSPACE%\\jenkins_results.jtl" -o "%WORKSPACE%\\HTMLReport"
+                    call jmeter -g "%WORKSPACE%\\jenkins_results.jtl" -o "%WORKSPACE%\\HTMLReport"
 
-            	if %ERRORLEVEL% NEQ 0 (
-                echo ===== HTML REPORT GENERATION FAILED =====
-                exit /b %ERRORLEVEL%
-            )
+                    if %ERRORLEVEL% NEQ 0 (
+                        echo ===== HTML REPORT GENERATION FAILED =====
+                        exit /b %ERRORLEVEL%
+                    )
 
-            echo ===== HTML REPORT GENERATION COMPLETED =====
-        '''
-    }
-}
-
-        stage('Test') {
-            steps {
-                echo '===== JENKINS PIPELINE TEST COMPLETED ====='
+                    echo ===== HTML REPORT GENERATION COMPLETED =====
+                '''
             }
         }
     }
-}
 
-post {
+    post {
         always {
             publishHTML([
                 allowMissing: false,
@@ -142,3 +135,4 @@ post {
             ])
         }
     }
+}
