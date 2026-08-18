@@ -75,6 +75,24 @@ pipeline {
             }
         }
 
+	stage('Clean Previous Results') {
+            steps {
+                bat '''
+            	echo ===== CLEANING PREVIOUS TEST RESULTS =====
+
+            	if exist "%WORKSPACE%\\jenkins_results.jtl" (
+                del /F /Q "%WORKSPACE%\\jenkins_results.jtl"
+            	)
+
+            	if exist "%WORKSPACE%\\HTMLReport" (
+                rmdir /S /Q "%WORKSPACE%\\HTMLReport"
+            	)
+
+           	echo ===== OLD RESULTS CLEANED =====
+        	'''
+    	    }
+	}
+
         stage('Run JMeter Test') {
             steps {
                 bat '''
