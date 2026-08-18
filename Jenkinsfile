@@ -129,3 +129,16 @@ pipeline {
         }
     }
 }
+
+post {
+        always {
+            publishHTML([
+                allowMissing: false,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: 'HTMLReport',
+                reportFiles: 'index.html',
+                reportName: 'JMeter Performance Report'
+            ])
+        }
+    }
