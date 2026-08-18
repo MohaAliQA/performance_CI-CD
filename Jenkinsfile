@@ -139,6 +139,54 @@ pipeline {
                 '''
             }
         }
+	
+	stage('Validate Error Rate') {
+    	    steps {
+       		script {
+            	echo '===== VALIDATING JMETER ERROR RATE ====='
+
+            	def result = bat(
+                script: '''
+                    powershell -NoProfile -Command ^
+                    "$data = Import-Csv '%WORKSPACE%\\jenkins_results.jtl'; ^
+                    $total = $data.Count; ^
+                    $failed = @($data | Where-Object { $_.success -eq 'false' }).Count; ^
+                    $errorRate = if ($total -gt 0) { ($failed * 100.0) / $total } else { 0 }; ^
+                    Write-Host ('TOTAL_SAMPLES=' + $total); ^
+                    Write-Host ('FAILED_SAMPLES=' + $failed); ^
+                    Write-Host ('ERROR_RATE=' + [math]::Round($errorRate,2))"
+                ''',
+                returnStdout: true
+            	).trim()
+
+            	echo result
+
+            	def totalMatch = result =~ /TOTAL_SAMPLES=(\d+)/
+            	def failedMatch = result =~ /FAILED_SAMPLES=(\d+)/
+            	def errorMatch = result =~ /ERROR_RATE=([\d.]+)/
+
+            	int totalSamples = totalMatch[0][1] as Integer
+            	int failedSamples = failedMatch[0][1] as Integer
+            	double errorRate = errorMatch[0][1] as Double
+
+            	double maximumErrorRate = 1.0
+
+            	echo "Total Samples = ${totalSamples}"
+            	echo "Failed Samples = ${failedSamples}"
+            	echo "Error Rate = ${errorRate}%"
+            	echo "Maximum Allowed Error Rate = ${maximumErrorRate}%"
+
+            	if (errorRate > maximumErrorRate) {
+                error(
+                    "PERFORMANCE TEST FAILED: Error Rate ${errorRate}% exceeds allowed ${maximumErrorRate}%"
+                )
+            	}
+
+            	echo '===== ERROR RATE VALIDATION PASSED ====='
+        	}
+    	    }
+	}
+
     }
 
     post {
