@@ -19,6 +19,18 @@ pipeline {
             defaultValue: '10',
             description: 'Ramp-up time in seconds'
         )
+
+        string(
+            name: 'MAX_ERROR_RATE',
+            defaultValue: '1',
+            description: 'Maximum allowed error rate in percentage'
+        )
+
+        string(
+            name: 'MAX_95TH_PERCENTILE',
+            defaultValue: '2000',
+            description: 'Maximum allowed 95th percentile response time in miliseconds'
+        )
     }
 
     stages {
@@ -37,6 +49,8 @@ pipeline {
                 script {
                     int threads = params.THREADS as Integer
                     int rampUp = params.RAMP_UP as Integer
+		    double maxErrorRate = params.MAX_ERROR_RATE as Double
+		    int max95thPercentile = params.MAX_95TH_PERCENTILE as Integer
 
                     if (threads <= 0) {
                         error "THREADS must be greater than zero. Received: ${threads}"
@@ -50,10 +64,20 @@ pipeline {
                         error "Invalid ENVIRONMENT: ${params.ENVIRONMENT}"
                     }
 
+		    if (maxErrorRate < 0) {
+			error "MAX_ERROR_RATE cannot be negative. Received: ${maxErrorRate}"
+		    }
+
+		    if (max95thPercentile <= 0) {
+			error "MAX_95TH_PERCENTILE must be greater than zero. Received: ${max95thPercentile}"
+		    }
+
                     echo '===== PARAMETER VALIDATION PASSED ====='
                     echo "THREADS=${threads}"
                     echo "RAMP_UP=${rampUp}"
                     echo "ENVIRONMENT=${params.ENVIRONMENT}"
+                    echo "MAX_ERROR_RATE=${maxErrorRate}"
+                    echo "MAX_95TH_PERCENTILE=${max95thPercentile} ms"
                 }
             }
         }
