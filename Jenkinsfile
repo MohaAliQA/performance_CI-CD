@@ -140,20 +140,22 @@ pipeline {
             }
         }
 
-        stage('Validate Error Rate') {
+        stage('Validate JMeter SLA') {
             steps {
-                echo '===== VALIDATING JMETER ERROR RATE ====='
-
                 bat '''
-                    powershell -NoProfile -ExecutionPolicy Bypass ^
-                    -File "%WORKSPACE%\\JMeter\\Validate-JMeterErrorRate.ps1"
+                    echo ===== VALIDATING JMETER SLA =====
+
+                    powershell -ExecutionPolicy Bypass -File "%WORKSPACE%\\JMeter\\Validate-JMeterSLA.ps1" ^
+                    -JtlFile "%WORKSPACE%\\jenkins_results.jtl" ^
+                    -MaximumErrorRate 1 ^
+                    -Maximum95thPercentile 2000
 
                     if %ERRORLEVEL% NEQ 0 (
-                        echo ===== ERROR RATE VALIDATION FAILED =====
+                        echo ===== JMETER SLA VALIDATION FAILED =====
                         exit /b %ERRORLEVEL%
                     )
 
-                    echo ===== ERROR RATE VALIDATION PASSED =====
+                    echo ===== JMETER SLA VALIDATION PASSED =====
                 '''
             }
         }
