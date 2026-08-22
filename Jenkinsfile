@@ -148,7 +148,7 @@ pipeline {
                     powershell -ExecutionPolicy Bypass -File "%WORKSPACE%\\JMeter\\Validate-JMeterSLA.ps1" ^
                     -JtlFile "%WORKSPACE%\\jenkins_results.jtl" ^
                     -MaximumErrorRate 1 ^
-                    -Maximum95thPercentile 2000
+                    -Maximum95thPercentile 150
 
                     if %ERRORLEVEL% NEQ 0 (
                         echo ===== JMETER SLA VALIDATION FAILED =====
