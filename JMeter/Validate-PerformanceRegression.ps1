@@ -32,7 +32,7 @@ if ($currentRows.Count -eq 0) {
 
 $currentRow = $currentRows[-1]
 
-$currentP95 = [double]$currentRow.95thPercentile
+$currentP95 = [double]$currentRow.'95thPercentile'
 
 Write-Host ""
 Write-Host "Current Build       = $CurrentBuildNumber"
@@ -60,7 +60,7 @@ $previousRows = $previousRows | Sort-Object {
 $baselineRow = $previousRows[-1]
 
 $baselineBuild = [int]$baselineRow.Build
-$baselineP95 = [double]$baselineRow.95thPercentile
+$baselineP95 = [double]$baselineRow.'95thPercentile'
 
 $maximumAcceptableP95 =
     $baselineP95 * (1 + ($AllowedDegradationPercent / 100))
