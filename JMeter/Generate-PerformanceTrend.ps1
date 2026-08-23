@@ -11,22 +11,30 @@ if (-not (Test-Path $HistoryFile)) {
     exit 1
 }
 
-$data = Import-Csv $HistoryFile
+$data = @(Import-Csv $HistoryFile)
 
-if (-not $data -or $data.Count -eq 0) {
+if ($data.Count -eq 0) {
     Write-Host "ERROR: Performance history is empty."
     exit 1
 }
 
+# Sort builds numerically
+$data = @(
+    $data | Sort-Object {
+        [int]$_.Build
+    }
+)
+
+# Prepare table rows
 $rows = ""
 
 foreach ($row in $data) {
 
-    $resultClass = if ($row.Result -eq "PASS") {
-        "pass"
+    if ($row.Result -eq "PASS") {
+        $resultClass = "pass"
     }
     else {
-        "fail"
+        $resultClass = "fail"
     }
 
     $rows += @"
@@ -44,13 +52,32 @@ foreach ($row in $data) {
 "@
 }
 
+# Prepare chart data
+$buildLabels = @()
+$p95Values = @()
+
+foreach ($row in $data) {
+    $buildLabels += "'Build $($row.Build)'"
+    $p95Values += [double]$row.'95thPercentile'
+}
+
+$labelsString = $buildLabels -join ","
+$p95String = $p95Values -join ","
+
+$latest = $data[-1]
+
 $html = @"
 <!DOCTYPE html>
+
 <html>
+
 <head>
+
 <meta charset="UTF-8">
 
 <title>JMeter Performance Trend Report</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 
@@ -65,6 +92,37 @@ h1 {
 }
 
 .summary {
+    background-color: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 15px;
+}
+
+.card {
+    background-color: #f8f8f8;
+    padding: 15px;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.card-title {
+    font-size: 13px;
+    color: #666666;
+}
+
+.card-value {
+    font-size: 22px;
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+.chart-container {
     background-color: white;
     padding: 20px;
     margin-bottom: 20px;
@@ -109,17 +167,46 @@ td {
 
 <div class="summary">
 
-<p><b>Total Builds:</b> $($data.Count)</p>
+<div class="summary-grid">
 
-<p><b>Latest Build:</b> $($data[-1].Build)</p>
+<div class="card">
+<div class="card-title">Total Builds</div>
+<div class="card-value">$($data.Count)</div>
+</div>
 
-<p><b>Latest Environment:</b> $($data[-1].Environment)</p>
+<div class="card">
+<div class="card-title">Latest Build</div>
+<div class="card-value">$($latest.Build)</div>
+</div>
 
-<p><b>Latest P95:</b> $($data[-1].'95thPercentile') ms</p>
+<div class="card">
+<div class="card-title">Latest Environment</div>
+<div class="card-value">$($latest.Environment)</div>
+</div>
 
-<p><b>Latest Result:</b> $($data[-1].Result)</p>
+<div class="card">
+<div class="card-title">Latest P95</div>
+<div class="card-value">$($latest.'95thPercentile') ms</div>
+</div>
+
+<div class="card">
+<div class="card-title">Latest Result</div>
+<div class="card-value">$($latest.Result)</div>
+</div>
 
 </div>
+
+</div>
+
+<div class="chart-container">
+
+<h2>95th Percentile Response Time Trend</h2>
+
+<canvas id="p95Chart"></canvas>
+
+</div>
+
+<h2>Performance History</h2>
 
 <table>
 
@@ -139,14 +226,73 @@ $rows
 
 </table>
 
+<script>
+
+const labels = [$labelsString];
+
+const p95Values = [$p95String];
+
+const ctx = document.getElementById('p95Chart');
+
+new Chart(ctx, {
+    type: 'line',
+
+    data: {
+        labels: labels,
+
+        datasets: [{
+            label: '95th Percentile Response Time (ms)',
+
+            data: p95Values,
+
+            borderWidth: 3,
+
+            tension: 0.3,
+
+            fill: false,
+
+            pointRadius: 5
+        }]
+    },
+
+    options: {
+
+        responsive: true,
+
+        scales: {
+
+            y: {
+                beginAtZero: true,
+
+                title: {
+                    display: true,
+                    text: 'Response Time (ms)'
+                }
+            },
+
+            x: {
+                title: {
+                    display: true,
+                    text: 'Jenkins Build'
+                }
+            }
+
+        }
+
+    }
+});
+
+</script>
+
 </body>
+
 </html>
 "@
 
 Set-Content -Path $OutputFile -Value $html -Encoding UTF8
 
 Write-Host ""
-Write-Host "Trend report generated successfully."
+Write-Host "Performance trend report generated successfully."
 Write-Host "Output file: $OutputFile"
 Write-Host "===== PERFORMANCE TREND REPORT COMPLETED ====="
 
