@@ -207,6 +207,26 @@ pipeline {
             }
         }
 
+        stage('Validate Performance Regression') {
+            steps {
+                bat '''
+                    echo ===== VALIDATING PERFORMANCE REGRESSION =====
+
+                    powershell -NoProfile -ExecutionPolicy Bypass -File "%WORKSPACE%\\JMeter\\Validate-PerformanceRegression.ps1" ^
+                    -HistoryFile "%WORKSPACE%\\performance-history.csv" ^
+                    -CurrentBuildNumber %BUILD_NUMBER% ^
+                    -AllowedDegradationPercent 20
+
+                    if %ERRORLEVEL% NEQ 0 (
+                        echo ===== PERFORMANCE REGRESSION DETECTED =====
+                        exit /b %ERRORLEVEL%
+                    )
+
+                    echo ===== PERFORMANCE REGRESSION VALIDATION PASSED =====
+                '''
+            }
+        }
+
     }
 
     post {
