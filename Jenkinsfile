@@ -227,6 +227,31 @@ pipeline {
             }
         }
 
+        stage('Generate Performance Trend') {
+            steps {
+                bat '''
+                    echo ===== GENERATING PERFORMANCE TREND REPORT =====
+
+                    if exist "%WORKSPACE%\\PerformanceTrend" (
+                       rmdir /S /Q "%WORKSPACE%\\PerformanceTrend"
+                    )
+
+                    mkdir "%WORKSPACE%\\PerformanceTrend"
+
+                    powershell -NoProfile -ExecutionPolicy Bypass -File "%WORKSPACE%\\JMeter\\Generate-PerformanceTrend.ps1" ^
+                    -HistoryFile "%WORKSPACE%\\performance-history.csv" ^
+                    -OutputFile "%WORKSPACE%\\PerformanceTrend\\index.html"
+
+                    if %ERRORLEVEL% NEQ 0 (
+                        echo ===== PERFORMANCE TREND REPORT FAILED =====
+                        exit /b %ERRORLEVEL%
+                    )
+
+                    echo ===== PERFORMANCE TREND REPORT COMPLETED =====
+                '''
+            }
+        }
+
     }
 
     post {
@@ -239,6 +264,16 @@ pipeline {
                 reportFiles: 'index.html',
                 reportName: 'JMeter Performance Report'
             ])
+
+            publishHTML([
+                allowMissing: false,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: 'PerformanceTrend',
+                reportFiles: 'index.html',
+                reportName: 'Performance Trend Report'
+            ])
+
         }
     }
 }
