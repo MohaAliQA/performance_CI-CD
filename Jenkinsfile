@@ -183,6 +183,42 @@ pipeline {
                 '''
             }
         }
+
+        stage('Save Performance History') {
+            steps {
+                script {
+                    echo '===== SAVING PERFORMANCE HISTORY ====='
+
+                    def historyFile = "${env.WORKSPACE}\\performance-history.csv"
+
+                    if (!fileExists('performance-history.csv')) {
+               		writeFile(
+                            file: 'performance-history.csv',
+                            text: 'Build,Environment,Threads,RampUp,TotalSamples,FailedSamples,ErrorRate,95thPercentile,Result\n'
+                        )
+                    }
+
+                    bat """
+                        powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+                        "\$jtl = Import-Csv '${env.WORKSPACE}\\jenkins_results.jtl'; ^
+                        \$total = \$jtl.Count; ^
+                        \$failed = @(\$jtl | Where-Object { \$_.success -eq 'false' }).Count; ^
+                        \$errorRate = if (\$total -gt 0) { (\$failed * 100.0) / \$total } else { 0 }; ^
+                        \$times = @(\$jtl | Where-Object { \$_.elapsed -match '^\\d+\$' } | ForEach-Object { [double]\$_.elapsed }); ^
+                        \$sorted = \$times | Sort-Object; ^
+                        \$index = [math]::Ceiling(0.95 * \$sorted.Count) - 1; ^
+                        if (\$index -lt 0) { \$index = 0 }; ^
+                        \$p95 = \$sorted[\$index]; ^
+                        \$line = '${env.BUILD_NUMBER},${params.ENVIRONMENT},${params.THREADS},${params.RAMP_UP},' + \$total + ',' + \$failed + ',' + [math]::Round(\$errorRate,2) + ',' + [math]::Round(\$p95,2) + ',PASS'; ^
+                        Add-Content -Path '${env.WORKSPACE}\\performance-history.csv' -Value \$line; ^
+                        Write-Host 'Performance history updated successfully.'"
+                    """
+
+                    echo '===== PERFORMANCE HISTORY SAVED ====='
+                }
+            }
+        }
+
     }
 
     post {
