@@ -76,6 +76,24 @@ if ($currentP95 -gt $maximumAcceptableP95) {
     Write-Host "PERFORMANCE REGRESSION DETECTED"
     Write-Host "Current P95 $currentP95 ms exceeds allowed $([math]::Round($maximumAcceptableP95,2)) ms"
 
+    # Mark current build as FAILED in performance history
+    $currentRow.Result = 'FAIL'
+
+    $updatedData = @(
+        $data | ForEach-Object {
+            if ([int]$_.Build -eq $CurrentBuildNumber) {
+                $currentRow
+            }
+            else {
+                $_
+            }
+        }
+    )
+
+    $updatedData | Export-Csv -Path $HistoryFile -NoTypeInformation
+
+    Write-Host "Build $CurrentBuildNumber marked as FAIL in performance history."
+
     exit 1
 }
 
