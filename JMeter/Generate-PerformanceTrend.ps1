@@ -25,7 +25,10 @@ $data = @(
     }
 )
 
-# Prepare table rows
+# ------------------------------------------------
+# TABLE DATA
+# ------------------------------------------------
+
 $rows = ""
 
 foreach ($row in $data) {
@@ -52,19 +55,36 @@ foreach ($row in $data) {
 "@
 }
 
-# Prepare chart data
+# ------------------------------------------------
+# CHART DATA
+# ------------------------------------------------
+
 $buildLabels = @()
 $p95Values = @()
+$errorRateValues = @()
 
 foreach ($row in $data) {
+
     $buildLabels += "'Build $($row.Build)'"
+
     $p95Values += [double]$row.'95thPercentile'
+
+    $errorRateValues += [double]$row.ErrorRate
 }
 
 $labelsString = $buildLabels -join ","
 $p95String = $p95Values -join ","
+$errorRateString = $errorRateValues -join ","
+
+# ------------------------------------------------
+# LATEST BUILD
+# ------------------------------------------------
 
 $latest = $data[-1]
+
+# ------------------------------------------------
+# HTML
+# ------------------------------------------------
 
 $html = @"
 <!DOCTYPE html>
@@ -88,6 +108,10 @@ body {
 }
 
 h1 {
+    color: #333333;
+}
+
+h2 {
     color: #333333;
 }
 
@@ -165,6 +189,8 @@ td {
 
 <h1>JMeter Performance Trend Report</h1>
 
+<!-- SUMMARY -->
+
 <div class="summary">
 
 <div class="summary-grid">
@@ -198,6 +224,8 @@ td {
 
 </div>
 
+<!-- P95 CHART -->
+
 <div class="chart-container">
 
 <h2>95th Percentile Response Time Trend</h2>
@@ -205,6 +233,18 @@ td {
 <canvas id="p95Chart"></canvas>
 
 </div>
+
+<!-- ERROR RATE CHART -->
+
+<div class="chart-container">
+
+<h2>Error Rate Trend</h2>
+
+<canvas id="errorRateChart"></canvas>
+
+</div>
+
+<!-- HISTORY TABLE -->
 
 <h2>Performance History</h2>
 
@@ -226,21 +266,31 @@ $rows
 
 </table>
 
+<!-- JAVASCRIPT -->
+
 <script>
 
 const labels = [$labelsString];
 
 const p95Values = [$p95String];
 
-const ctx = document.getElementById('p95Chart');
+const errorRateValues = [$errorRateString];
 
-new Chart(ctx, {
+
+// P95 CHART
+
+const p95Ctx = document.getElementById('p95Chart');
+
+new Chart(p95Ctx, {
+
     type: 'line',
 
     data: {
+
         labels: labels,
 
         datasets: [{
+
             label: '95th Percentile Response Time (ms)',
 
             data: p95Values,
@@ -252,7 +302,9 @@ new Chart(ctx, {
             fill: false,
 
             pointRadius: 5
+
         }]
+
     },
 
     options: {
@@ -262,24 +314,104 @@ new Chart(ctx, {
         scales: {
 
             y: {
+
                 beginAtZero: true,
 
                 title: {
+
                     display: true,
+
                     text: 'Response Time (ms)'
+
                 }
+
             },
 
             x: {
+
                 title: {
+
                     display: true,
+
                     text: 'Jenkins Build'
+
                 }
+
             }
 
         }
 
     }
+
+});
+
+
+// ERROR RATE CHART
+
+const errorCtx = document.getElementById('errorRateChart');
+
+new Chart(errorCtx, {
+
+    type: 'line',
+
+    data: {
+
+        labels: labels,
+
+        datasets: [{
+
+            label: 'Error Rate (%)',
+
+            data: errorRateValues,
+
+            borderWidth: 3,
+
+            tension: 0.3,
+
+            fill: false,
+
+            pointRadius: 5
+
+        }]
+
+    },
+
+    options: {
+
+        responsive: true,
+
+        scales: {
+
+            y: {
+
+                beginAtZero: true,
+
+                title: {
+
+                    display: true,
+
+                    text: 'Error Rate (%)'
+
+                }
+
+            },
+
+            x: {
+
+                title: {
+
+                    display: true,
+
+                    text: 'Jenkins Build'
+
+                }
+
+            }
+
+        }
+
+    }
+
 });
 
 </script>
@@ -289,11 +421,21 @@ new Chart(ctx, {
 </html>
 "@
 
-Set-Content -Path $OutputFile -Value $html -Encoding UTF8
+# ------------------------------------------------
+# WRITE REPORT
+# ------------------------------------------------
+
+Set-Content `
+    -Path $OutputFile `
+    -Value $html `
+    -Encoding UTF8
 
 Write-Host ""
 Write-Host "Performance trend report generated successfully."
+Write-Host "P95 trend chart generated."
+Write-Host "Error rate trend chart generated."
 Write-Host "Output file: $OutputFile"
+Write-Host ""
 Write-Host "===== PERFORMANCE TREND REPORT COMPLETED ====="
 
 exit 0
