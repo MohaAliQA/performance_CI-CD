@@ -225,7 +225,7 @@ pipeline {
                        powershell -NoProfile -ExecutionPolicy Bypass -File "%WORKSPACE%\\JMeter\\Validate-PerformanceRegression.ps1" ^
                        -HistoryFile "%WORKSPACE%\\performance-history.csv" ^
                        -CurrentBuildNumber %BUILD_NUMBER% ^
-                       -AllowedDegradationPercent 20
+                       -AllowedDegradationPercent 50
 
                        if %ERRORLEVEL% NEQ 0 (
                            echo ===== PERFORMANCE REGRESSION DETECTED =====

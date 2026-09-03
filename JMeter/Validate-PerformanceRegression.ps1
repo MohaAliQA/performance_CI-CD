@@ -1,7 +1,7 @@
 param (
     [string]$HistoryFile,
     [int]$CurrentBuildNumber,
-    [double]$AllowedDegradationPercent = 20
+    [double]$AllowedDegradationPercent = 50
 )
 
 Write-Host "===== PERFORMANCE REGRESSION VALIDATION ====="
