@@ -31,6 +31,12 @@ pipeline {
             defaultValue: '2000',
             description: 'Maximum allowed 95th percentile response time in miliseconds'
         )
+
+        string(
+            name: 'EXPECTED_TPS',
+            defaultValue: '1',
+            description: 'Minimum required transactions per seconds'
+        )
     }
 
     stages {
